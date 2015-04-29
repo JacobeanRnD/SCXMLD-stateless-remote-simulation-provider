@@ -1,0 +1,37 @@
+{
+  "name": "SCXMLD-docker-stateless-simulation-provider",
+  "version": "0.0.1a",
+  "description": "docker stateless in-memory SCION simulation provider",
+  "main": "index.js",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Jacob Beard",
+    "email": "jake@jacobeanrnd.com",
+    "url": "http://github.com/jbeard4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JacobeanRnD/SCXMLD-docker-stateless-simulation-provider.git"
+  },
+  "keywords": [
+    "docker",
+    "scion",
+    "scxml"
+  ],
+  "bugs": {
+    "url": "https://github.com/JacobeanRnD/SCXMLD-docker-stateless-simulation-provider/issues"
+  },
+  "homepage": "https://github.com/JacobeanRnD/SCXMLD-docker-stateless-simulation-provider",
+  "dependencies": {
+    "dockerode": "^2.1.1",
+    "eventsource": "^0.1.6",
+    "request": "^2.55.0",
+    "rimraf": "^2.3.2",
+    "tar": "^2.1.0",
+    "underscore": "^1.8.3",
+    "uuid": "^2.0.1"
+  }
+}
