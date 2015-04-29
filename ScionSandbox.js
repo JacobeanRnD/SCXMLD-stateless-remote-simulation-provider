@@ -9,9 +9,10 @@ function createSandbox(options, cb) {
   var t0 = new Date();
   docker.createContainer({
       Image: options.image,
-      'Volumes': {
+      Volumes: {
         '/statechartFolder': {}
       },
+      Env : 'SEND_URL=' + process.env.SEND_URL,
       Memory: 128000000,
       RestartPolicy: 'no',
       MaximumRetryCount: 10,
