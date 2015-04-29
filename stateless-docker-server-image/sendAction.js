@@ -6,6 +6,8 @@ var _ = require('underscore');
 function sendEventToSelf(event){
   var selfUrl = process.env.SEND_URL + event.origin;
 
+  console.log('selfUrl', selfUrl);
+
   request({
     method : 'POST',
     json : event,
@@ -15,7 +17,8 @@ function sendEventToSelf(event){
   });
 }
 
-module.exports = function (event) {
+module.exports = function (event, options) {
+  console.log('customSendEvent', event, options);
 	var n;
 
   switch(event.type) {
@@ -23,6 +26,9 @@ module.exports = function (event) {
       //normalize to an HTTP event
       //assume this is of the form '/foo/bar/bat'
     case 'http://www.w3.org/TR/scxml/#BasicHTTPEventProcessor':
+      //Pass delay information to server
+      event.delay = options.delay;
+
       if(!event.target) {
         n = function () {
           sendEventToSelf(event);

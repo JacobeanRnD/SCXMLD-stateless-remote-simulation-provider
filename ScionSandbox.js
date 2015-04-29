@@ -39,6 +39,7 @@ function createSandbox(options, cb) {
       container.start({
         'Binds': [options.statechartFolder + ':/statechartFolder']
       }, function(err, data) {
+        console.log('test1', err, data);
         if (err) return cb(err);
         console.log('Started container');
 
@@ -47,6 +48,7 @@ function createSandbox(options, cb) {
         var t2 = new Date();
         console.log('ms until started', t2 - t1);
         container.inspect(function(err, info) {
+          console.log('test2', err);
           if (err) return cb(err);
           console.log('Container info');
 
@@ -61,13 +63,12 @@ function createSandbox(options, cb) {
           console.log('ms to inspect', t3 - t2);
 
           function waitUntilReady() {
-            console.log('Server not ready yet', sandbox.ip);
             var url = 'http://' + sandbox.ip + ':3000/start';
             request({
               url: url,
               method: 'POST'
             }, function(err, res) {
-              console.log('err', err);
+              
               if (err) return setTimeout(waitUntilReady, 100);
 
               if (res.statusCode !== 200) return setTimeout(waitUntilReady, 100);

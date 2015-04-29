@@ -77,7 +77,6 @@ module.exports = function (db) {
     var chartName = getStatechartName(instanceId);
     var statechartFolder = path.resolve(path.join(tmpFolder, chartName));
 
-    console.log(statechartFolder);
     fs.exists(statechartFolder, function (exists) {
       if(!exists) return done({ statusCode: 404 });
 
@@ -85,14 +84,11 @@ module.exports = function (db) {
     });
     
     function createAndStartInstance () {
-      console.log('here1');
       createSandbox({
         image: imageName,
         statechartFolder: statechartFolder
       }, function (error, sandbox) {
         //Instance ready to query here.
-        console.log('container result', error, sandbox);
-
         startListening(sandbox, function(err, eventSource) {
           request({
             url: 'http://' + sandbox.ip + ':3000/react',
@@ -103,29 +99,21 @@ module.exports = function (db) {
               event: event
             }
           }, function(err, res, conf) {
-            console.log('here0', err, conf);
             if(err) return done(err);
 
             console.log('conf', conf);
             done(null, conf);
 
-
-
-            console.log('here 2');
             setTimeout(function () {
               eventSource.close();
 
-              console.log(sandbox);
-
               sandbox.container.stop(function (err, data) {
-                console.log(err, data);
                 
                 sandbox.container.remove(function (err, data) {
-                  console.log(err, data);
                 });
               });
 
-            }, 500);
+            }, 100);
           });
         });
       });
@@ -146,7 +134,7 @@ module.exports = function (db) {
 
       function publishChanges (eventName) {
         return function (stateId) {
-          console.log(eventName, stateId);
+          console.log(eventName, stateId.data);
           var subscriptions = instanceSubscriptions[instanceId];
 
           if(!subscriptions) return;
