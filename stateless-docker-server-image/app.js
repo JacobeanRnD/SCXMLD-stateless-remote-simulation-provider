@@ -16,7 +16,6 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var scxml = require('scxml');
 var sse = require('./sse');
-var sendAction = require('./sendAction');
 
 var SCXML_FILE = '/statechartFolder/index.scxml';
 var app = express();
@@ -37,10 +36,16 @@ app.post('/react', function (req, res) {
   scxml.pathToModel(SCXML_FILE, function (err, model) {
     if(err) res.status(500).send(err);
 
+    var sendList = [], cancelList = [];
     var instance = new scxml.scion.Statechart(model, {
       snapshot: snapshot,
       sessionid: id,
-      customSend: sendAction
+      customSend: function (event, options) {
+        sendList.push({ event: event, options: options });
+      },
+      customCancel: function (sendid) {
+        cancelList.push({ sendid: sendid });
+      }
     });
 
     instance.registerListener({
@@ -57,7 +62,11 @@ app.post('/react', function (req, res) {
     //Get final configuration
     var conf = instance.getSnapshot();
 
-    return res.send(conf);
+    return res.send({
+      conf: conf,
+      sendList: sendList,
+      cancelList: cancelList
+    });
 
   }, { require: require });
 });

@@ -7,7 +7,8 @@ var fs = require('fs'),
   tar = require('tar'),
   eventsource = require('eventsource'),
   request = require('request'),
-  createSandbox = require('./ScionSandbox');
+  createSandbox = require('./ScionSandbox'),
+  sendAction = require('./sendAction');
 
 var imageName = 'jbeard4/stateless-docker-server-image';
 var tmpFolder = 'tmp';
@@ -60,20 +61,6 @@ module.exports = function (db) {
   };
 
   function react (instanceId, snapshot, event, done) {
-    //Check if chartname.scxml folder exists
-      //If it does
-      //Use scxml.pathToModel
-    //else
-    //Query db for statechart content
-    //Use documentStringToModel
-    //Get model
-    //Create instance
-    //Add listeners
-    //Start instance with or without snapshot
-      //If event exists
-      //Send the event
-    //Return config
-
     var chartName = getStatechartName(instanceId);
     var statechartFolder = path.resolve(path.join(tmpFolder, chartName));
 
@@ -98,22 +85,28 @@ module.exports = function (db) {
               id: instanceId,
               event: event
             }
-          }, function(err, res, conf) {
+          }, function(err, res, result) {
             if(err) return done(err);
 
-            console.log('conf', conf);
-            done(null, conf);
+            console.log('conf', result.conf);
+            done(null, result.conf);
 
+            result.sendList.forEach(function (sendItem) {
+              sendAction.send(sendItem.event, sendItem.options);
+            });
+
+            result.cancelList.forEach(function (cancelItem) {
+              sendAction.cancel(cancelItem.sendid);
+            });
+
+            //Cleanup
             setTimeout(function () {
               eventSource.close();
 
-              sandbox.container.stop(function (err, data) {
-                
-                sandbox.container.remove(function (err, data) {
-                });
+              sandbox.container.stop(function () {
+                sandbox.container.remove(function () {});
               });
-
-            }, 200);
+            }, 150);
           });
         });
       });

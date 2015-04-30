@@ -15,7 +15,7 @@
     "jade": "~1.9.1",
     "morgan": "~1.5.1",
     "request": "^2.55.0",
-    "scxml": "git://github.com/jbeard4/SCION.git#84ab67d32b502df7f4ff54b9c8e1c90db550e2e6",
+    "scxml": "git://github.com/jbeard4/SCION.git#1c4724724b4d01b7a773899e5873da88ad345212",
     "serve-favicon": "~2.2.0",
     "tar": "^2.0.0",
     "underscore": "^1.8.3"

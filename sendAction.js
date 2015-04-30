@@ -3,11 +3,10 @@
 var request = require('request');
 var _ = require('underscore');
 
+var timeoutMap = {};
 function sendEventToSelf(event){
   var selfUrl = process.env.SEND_URL + event.origin;
-
-  console.log('selfUrl', selfUrl);
-
+  
   request({
     method : 'POST',
     json : event,
@@ -17,7 +16,7 @@ function sendEventToSelf(event){
   });
 }
 
-module.exports = function (event, options) {
+function send(event, options) {
   console.log('customSendEvent', event, options);
 	var n;
 
@@ -26,9 +25,6 @@ module.exports = function (event, options) {
       //normalize to an HTTP event
       //assume this is of the form '/foo/bar/bat'
     case 'http://www.w3.org/TR/scxml/#BasicHTTPEventProcessor':
-      //Pass delay information to server
-      event.delay = options.delay;
-
       if(!event.target) {
         n = function () {
           sendEventToSelf(event);
@@ -61,5 +57,18 @@ module.exports = function (event, options) {
       break;
   }
 
-  n();
+  var timeoutId = setTimeout(n, options.delay || 0);
+  if (options.sendid) timeoutMap[options.sendid] = timeoutId;
+}
+
+function cancel (sendid) {
+  var timeoutId = timeoutMap[sendid];
+  if(timeoutId) {
+    clearTimeout(timeoutId);
+  }
+}
+
+module.exports = {
+  send: send,
+  cancel: cancel
 };

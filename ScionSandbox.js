@@ -12,7 +12,6 @@ function createSandbox(options, cb) {
       Volumes: {
         '/statechartFolder': {}
       },
-      Env : 'SEND_URL=' + process.env.SEND_URL,
       Memory: 128000000,
       RestartPolicy: 'no',
       MaximumRetryCount: 10,
