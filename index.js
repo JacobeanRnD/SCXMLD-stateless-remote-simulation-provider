@@ -113,7 +113,7 @@ module.exports = function (db) {
                 });
               });
 
-            }, 100);
+            }, 200);
           });
         });
       });
