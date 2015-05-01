@@ -79,9 +79,13 @@ module.exports = function (db) {
       createSandbox({
         image: imageName,
         statechartFolder: statechartFolder
-      }, function (error, sandbox) {
+      }, function (err, sandbox) {
+        if(err) return done(err);
+
         //Instance ready to query here.
         startListening(sandbox, function(err, eventSource) {
+          if(err) return done(err);
+
           request({
             url: 'http://' + sandbox.ip + ':3000/react',
             method: 'POST',
