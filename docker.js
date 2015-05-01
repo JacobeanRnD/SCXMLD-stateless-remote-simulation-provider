@@ -26,6 +26,8 @@ if(os.type() === 'Darwin'){
 }else if(os.type() === 'Linux'){
   if(process.env.DOCKER_HOST) {
     docker = new Docker(urlModule.parse(process.env.DOCKER_HOST));
+  } else if(process.env.DOCKER_SOCK) {
+    docker = new Docker({socketPath : process.env.DOCKER_SOCK});
   } else {
     docker = new Docker();
   }
