@@ -25,6 +25,11 @@ module.exports = function (db) {
   function getStatechartName (instanceId) {
     return instanceId.split('/')[0]; 
   }
+  
+   //Delete old temp folder
+  //Create temporary folder for tar streams  
+  rmdir.sync(tmpFolder);
+  fs.mkdir(tmpFolder);
 
   server.createStatechartWithTar = function (chartName, pack, done) {
     var statechartFolder = path.join(tmpFolder, chartName);
