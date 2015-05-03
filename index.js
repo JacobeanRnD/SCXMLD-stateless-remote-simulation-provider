@@ -10,8 +10,6 @@ var fs = require('fs'),
   createSandbox = require('./ScionSandbox'),
   sendAction = require('./sendAction');
 
-var imageName = 'jbeard4/stateless-docker-server-image';
-var tmpFolder = 'tmp';
 var instanceSubscriptions = {};
 
 module.exports = function (db) {
@@ -25,104 +23,58 @@ module.exports = function (db) {
   function getStatechartName (instanceId) {
     return instanceId.split('/')[0]; 
   }
-  
-  //Create temporary folder for tar streams  
-  fs.exists(tmpFolder, function (exists) {
-    if(!exists) fs.mkdir(tmpFolder);  
-  });
 
   server.createStatechartWithTar = function (chartName, pack, done) {
-    var statechartFolder = path.join(tmpFolder, chartName);
-
-    rmdir(statechartFolder, function (err) {
-      if(err) return done(err);
-
-      fs.mkdir(statechartFolder, function () {
-        var extractor = tar.Extract({path: statechartFolder })
-          .on('error', function (err) { done(err); })
-          .on('end', function () {
-            done();
-          });
-
-        //Route tar stream to our file system and finalize
-        pack.pipe(extractor);
-        pack.finalize();
-      });
-    });
-  };
-
-  server.createStatechart = function (chartName, scxmlString, done) {
-    var statechartFolder = path.join(tmpFolder, chartName);
-
-    rmdir(statechartFolder, function (err) {
-      if(err) return done(err);
-
-      //Create a local folder with statechartname
-      fs.mkdir(statechartFolder, function () {
-        //Put scxml contents as the main file name
-        fs.writeFile(path.join(statechartFolder, 'index.scxml'), scxmlString, done);
-      });
-    });
+    return done({ statusCode: 501 });
   };
 
   function react (instanceId, snapshot, event, done) {
     var chartName = getStatechartName(instanceId);
-    var statechartFolder = path.resolve(path.join(tmpFolder, chartName));
 
-    fs.exists(statechartFolder, function (exists) {
-      if(!exists) return done({ statusCode: 404 });
+    db.getStatechart(chartName, function (err, scxmlString) {
+      if(err) return done(err);
+      if(!scxmlString) return done({ statusCode: 404});
 
-      createAndStartInstance();
+      createAndStartInstance(scxmlString);
     });
     
-    function createAndStartInstance () {
-      createSandbox({
-        image: imageName,
-        statechartFolder: statechartFolder
-      }, function (err, sandbox) {
+    function createAndStartInstance (scxmlString) {
+      //Instance ready to query here.
+      startListening(function(err, eventSource) {
         if(err) return done(err);
 
-        //Instance ready to query here.
-        startListening(sandbox, function(err, eventSource) {
+        request({
+          url: process.env.SCION_SANDBOX_URL + '/react',
+          method: 'POST',
+          json: {
+            snapshot: snapshot,
+            instanceId: instanceId,
+            event: event,
+            scxml: scxmlString
+          }
+        }, function(err, res, result) {
           if(err) return done(err);
 
-          request({
-            url: 'http://' + sandbox.ip + ':3000/react',
-            method: 'POST',
-            json: {
-              snapshot: snapshot,
-              id: instanceId,
-              event: event
-            }
-          }, function(err, res, result) {
-            if(err) return done(err);
+          console.log('conf', result.conf);
+          done(null, result.conf);
 
-            console.log('conf', result.conf);
-            done(null, result.conf);
-
-            result.sendList.forEach(function (sendItem) {
-              sendAction.send(sendItem.event, sendItem.options);
-            });
-
-            result.cancelList.forEach(function (cancelItem) {
-              sendAction.cancel(cancelItem.sendid);
-            });
-
-            //Cleanup
-            setTimeout(function () {
-              eventSource.close();
-
-              sandbox.container.stop(function () {
-                sandbox.container.remove(function () {});
-              });
-            }, 150);
+          result.sendList.forEach(function (sendItem) {
+            sendAction.send(sendItem.event, sendItem.options);
           });
+
+          result.cancelList.forEach(function (cancelItem) {
+            sendAction.cancel(cancelItem.sendid);
+          });
+
+          setTimeout(function () {
+            eventSource.close();
+          }, 200);
         });
       });
     }
 
-    function startListening(sandbox, done) {
-      var es = new eventsource('http://' + sandbox.ip + ':3000/_changes');
+    function startListening(done) {
+      var es = new eventsource(process.env.SCION_SANDBOX_URL + '/_changes');
 
       es.addEventListener('subscribed', function () {
         console.log('subscribe done');
@@ -167,6 +119,7 @@ module.exports = function (db) {
       server.startInstance(id, done);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
+        console.log(err, snapshot);
         react(id, snapshot, event, done);
       });
     }
@@ -215,6 +168,7 @@ module.exports = function (db) {
     if(done) done();
   };
 
+  server.createStatechart = completeInstantly;
   server.getInstanceSnapshot = completeInstantly;
   server.deleteInstance = completeInstantly;
   server.deleteStatechart = completeInstantly;
