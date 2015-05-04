@@ -1,13 +1,7 @@
 'use strict';
 
-var fs = require('fs'),
-  path = require('path'),
-  uuid = require('uuid'),
-  rmdir = require('rimraf'),
-  tar = require('tar'),
-  eventsource = require('eventsource'),
+var uuid = require('uuid'),
   request = require('request'),
-  createSandbox = require('./ScionSandbox'),
   redis = require('redis'),
   url = require('url'),
   debug = require('debug')('SCXMLD-stateless-remote-simulation-provider'),
@@ -34,7 +28,7 @@ module.exports = function (db) {
 
   var server = {};
 
-  redisSubscribe.on("message", function (instanceIdChannel, message) {
+  redisSubscribe.on('message', function (instanceIdChannel, message) {
     var event = JSON.parse(message);
     var subscriptions = instanceSubscriptions[instanceIdChannel];
 
@@ -50,10 +44,6 @@ module.exports = function (db) {
   function getStatechartName (instanceId) {
     return instanceId.split('/')[0]; 
   }
-
-  server.createStatechartWithTar = function (chartName, pack, done) {
-    //TODO: unpack tar into ceph
-  };
 
   function react (instanceId, snapshot, event, done) {
 
@@ -169,6 +159,7 @@ module.exports = function (db) {
     if(done) done();
   };
 
+  server.createStatechartWithTar = completeInstantly;
   server.createStatechart = completeInstantly;
   server.getInstanceSnapshot = completeInstantly;
 
