@@ -26,6 +26,7 @@
   },
   "homepage": "https://github.com/JacobeanRnD/SCXMLD-docker-stateless-simulation-provider",
   "dependencies": {
+    "debug": "^2.1.3",
     "dockerode": "^2.1.1",
     "eventsource": "^0.1.6",
     "request": "^2.55.0",

@@ -1,2 +1,7 @@
-# SCXMLD-docker-stateless-simulation-provider
-Sits in front of stateless simulation service
+Front-end of scion-sandbox-worker service. 
+
+Sits in front of stateless-simulation-provider
+
+Required configuration: 
+* SCION_SANDBOX_URL
+* REDIS_URL

@@ -8,98 +8,99 @@ var fs = require('fs'),
   eventsource = require('eventsource'),
   request = require('request'),
   createSandbox = require('./ScionSandbox'),
+  redis = require('redis'),
+  url = require('url'),
+  debug = require('debug')('SCXMLD-stateless-remote-simulation-provider'),
   sendAction = require('./sendAction');
+
+
+if (process.env.REDIS_URL) {
+  var rtg = url.parse(process.env.REDIS_URL);
+  var redisSubscribe = redis.createClient(rtg.port, rtg.hostname);
+
+  if(rtg.auth) redisSubscribe.auth(rtg.auth.split(':')[1]);
+} else {
+  redisSubscribe = redis.createClient();
+}
 
 var instanceSubscriptions = {};
 
 module.exports = function (db) {
-  var server = {};
-  
-  function completeInstantly () {
-    //Call last argument
-    arguments[arguments.length -1]();
-  }
 
+  function completeInstantly () {                 
+    //Call last argument                          
+    arguments[arguments.length -1]();             
+  }           
+
+  var server = {};
+
+  redisSubscribe.on("message", function (instanceIdChannel, message) {
+    var event = JSON.parse(message);
+    var subscriptions = instanceSubscriptions[instanceIdChannel];
+
+    if(!subscriptions) return;
+
+    subscriptions.forEach(function (response) {
+      response.write('event: ' + event.name +'\n');
+      response.write('data: ' + event.data + '\n\n');
+    });
+  });
+
+  
   function getStatechartName (instanceId) {
     return instanceId.split('/')[0]; 
   }
 
   server.createStatechartWithTar = function (chartName, pack, done) {
-    return done({ statusCode: 501 });
+    //TODO: unpack tar into ceph
   };
 
   function react (instanceId, snapshot, event, done) {
+
     var chartName = getStatechartName(instanceId);
 
-    db.getStatechart(chartName, function (err, scxmlString) {
-      if(err) return done(err);
-      if(!scxmlString) return done({ statusCode: 404});
+    redisSubscribe.subscribe(instanceId);   //TODO: tear down the subscription if, on unsubscribe, we have no more open subscriptions for that instance. 
 
-      createAndStartInstance(scxmlString);
-    });
-    
-    function createAndStartInstance (scxmlString) {
-      //Instance ready to query here.
-      startListening(function(err, eventSource) {
-        if(err) return done(err);
-
-        request({
-          url: process.env.SCION_SANDBOX_URL + '/react',
-          method: 'POST',
-          json: {
-            snapshot: snapshot,
-            instanceId: instanceId,
-            event: event,
-            scxml: scxmlString
-          }
-        }, function(err, res, result) {
-          if(err) return done(err);
-
-          console.log('conf', result.conf);
-          done(null, result.conf);
-
-          result.sendList.forEach(function (sendItem) {
-            sendAction.send(sendItem.event, sendItem.options);
-          });
-
-          result.cancelList.forEach(function (cancelItem) {
-            sendAction.cancel(cancelItem.sendid);
-          });
-
-          setTimeout(function () {
-            eventSource.close();
-          }, 200);
-        });
+    debug('sending event to',
+      process.env.SCION_SANDBOX_URL,
+      {
+          snapshot: snapshot,
+          instanceId: instanceId,
+          event: event
       });
-    }
 
-    function startListening(done) {
-      var es = new eventsource(process.env.SCION_SANDBOX_URL + '/_changes');
-
-      es.addEventListener('subscribed', function () {
-        console.log('subscribe done');
-        done(null, es);
-      }, false);
-      es.addEventListener('onEntry', publishChanges('onEntry'), false);
-      es.addEventListener('onExit', publishChanges('onExit'), false);
-      es.onerror = function (e) {
-        console.log('Eventsource error', e);
-      };
-
-      function publishChanges (eventName) {
-        return function (stateId) {
-          console.log(eventName, stateId.data);
-          var subscriptions = instanceSubscriptions[instanceId];
-
-          if(!subscriptions) return;
-
-          subscriptions.forEach(function (response) {
-            response.write('event: ' + eventName +'\n');
-            response.write('data: ' + stateId.data + '\n\n');
-          });
-        };
+    request({
+      url: process.env.SCION_SANDBOX_URL,
+      method: 'POST',
+      json: {
+        snapshot: snapshot,
+        instanceId: instanceId,
+        event: event
       }
-    }
+    }, function(err, res, result) {
+      debug(process.env.SCION_SANDBOX_URL,'response',err, result);
+
+      if(err){ 
+        debug('err',err);
+        return done(err);
+      }
+      if(res.statusCode !== 200){
+        return done(new Error('Received error response from simulation server: ' + res.statusCode));
+      }
+
+      //TODO: save event to database.
+      //TODO: save instance to database
+      debug ('conf',result.conf);
+      done(null, result.conf);
+
+      result.sendList.forEach(function (sendItem) {
+        sendAction.send(sendItem.event, sendItem.options);
+      });
+
+      result.cancelList.forEach(function (cancelItem) {
+        sendAction.cancel(cancelItem.sendid);
+      });
+    });
   }
 
   server.createInstance = function (chartName, id, done) {
@@ -119,7 +120,7 @@ module.exports = function (db) {
       server.startInstance(id, done);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
-        console.log(err, snapshot);
+        debug(err, snapshot);
         react(id, snapshot, event, done);
       });
     }
@@ -170,7 +171,10 @@ module.exports = function (db) {
 
   server.createStatechart = completeInstantly;
   server.getInstanceSnapshot = completeInstantly;
+
+  server.getInstanceSnapshot = completeInstantly;
   server.deleteInstance = completeInstantly;
+
   server.deleteStatechart = completeInstantly;
 
   return server;
