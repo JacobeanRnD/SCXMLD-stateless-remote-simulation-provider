@@ -1,5 +1,5 @@
 {
-  "name": "SCXMLD-docker-stateless-simulation-provider",
+  "name": "SCXMLD-stateless-remote-simulation-provider",
   "version": "0.0.1a",
   "description": "docker stateless in-memory SCION simulation provider",
   "main": "index.js",
