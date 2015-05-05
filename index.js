@@ -45,7 +45,7 @@ module.exports = function (db) {
     return instanceId.split('/')[0]; 
   }
 
-  function react (instanceId, snapshot, event, done) {
+  function react (instanceId, snapshot, event, sendUrl, done) {
 
     var chartName = getStatechartName(instanceId);
 
@@ -84,7 +84,7 @@ module.exports = function (db) {
       done(null, result.conf);
 
       result.sendList.forEach(function (sendItem) {
-        sendAction.send(sendItem.event, sendItem.options);
+        sendAction.send(sendItem.event, sendItem.options, sendUrl);
       });
 
       result.cancelList.forEach(function (cancelItem) {
@@ -99,19 +99,19 @@ module.exports = function (db) {
     done(null, instanceId);
   };
 
-  server.startInstance = function (id, done) {
-    react(id, null, null, done);
+  server.startInstance = function (id, sendUrl, done) {
+    react(id, null, null, sendUrl, done);
   };
 
-  server.sendEvent = function (id, event, done) {
+  server.sendEvent = function (id, event, sendUrl, done) {
     var chartName = getStatechartName(id);
 
     if(event.name === 'system.start') {
-      server.startInstance(id, done);
+      server.startInstance(id, sendUrl, done);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
         debug(err, snapshot);
-        react(id, snapshot, event, done);
+        react(id, snapshot, event, sendUrl, done);
       });
     }
   };

@@ -4,8 +4,8 @@ var request = require('request');
 var _ = require('underscore');
 
 var timeoutMap = {};
-function sendEventToSelf(event){
-  var selfUrl = process.env.SEND_URL + event.origin;
+function sendEventToSelf(event, sendUrl){
+  var selfUrl = sendUrl || process.env.SEND_URL + event.origin;
   
   request({
     method : 'POST',
@@ -16,7 +16,7 @@ function sendEventToSelf(event){
   });
 }
 
-function send(event, options) {
+function send(event, options, sendUrl) {
   console.log('customSendEvent', event, options);
 	var n;
 
@@ -27,7 +27,7 @@ function send(event, options) {
     case 'http://www.w3.org/TR/scxml/#BasicHTTPEventProcessor':
       if(!event.target) {
         n = function () {
-          sendEventToSelf(event);
+          sendEventToSelf(event, sendUrl);
         };
       } else {
         n = function(){
@@ -37,7 +37,7 @@ function send(event, options) {
             url : event.target
           },function(error, response, body ) {
             if(error){
-              sendEventToSelf(_.extend(event, { name : 'send.' + event.sendid + '.got.error',  data : error }));
+              sendEventToSelf(_.extend(event, { name : 'send.' + event.sendid + '.got.error',  data : error }), sendUrl);
             }else{
               sendEventToSelf(_.extend(event, {
                 name : 'send.' + event.sendid + '.got.success', 
@@ -45,7 +45,7 @@ function send(event, options) {
                   body : body,
                   response : response
                 }
-              })); 
+              }), sendUrl); 
             }
           });
         };
