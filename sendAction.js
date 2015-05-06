@@ -17,7 +17,6 @@ function sendEventToSelf(event, sendUrl){
 }
 
 function send(event, options, sendUrl) {
-  console.log('customSendEvent', event, options);
 	var n;
 
   switch(event.type) {
@@ -36,6 +35,8 @@ function send(event, options, sendUrl) {
             json : event,
             url : event.target
           },function(error, response, body ) {
+            //ignore the response for now
+            /*
             if(error){
               sendEventToSelf(_.extend(event, { name : 'send.' + event.sendid + '.got.error',  data : error }), sendUrl);
             }else{
@@ -47,6 +48,7 @@ function send(event, options, sendUrl) {
                 }
               }), sendUrl); 
             }
+            */
           });
         };
       }

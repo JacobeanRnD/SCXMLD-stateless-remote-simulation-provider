@@ -17,7 +17,7 @@ if (process.env.REDIS_URL) {
   redisSubscribe = redis.createClient();
 }
 
-var instanceSubscriptions = {};
+var instanceSubscriptions = {};   // instanceid -> response
 
 module.exports = function (db) {
 
@@ -45,7 +45,7 @@ module.exports = function (db) {
     return instanceId.split('/')[0]; 
   }
 
-  function react (instanceId, snapshot, event, sendUrl, done) {
+  function react (instanceId, snapshot, event, sendUrl, done, respond) {
 
     var chartName = getStatechartName(instanceId);
 
@@ -68,7 +68,7 @@ module.exports = function (db) {
         event: event
       }
     }, function(err, res, result) {
-      debug(process.env.SCION_SANDBOX_URL,'response',err, result);
+      debug(process.env.SCION_SANDBOX_URL,'response',err, JSON.stringify(result,4,4));
 
       if(err){ 
         debug('err',err);
@@ -80,16 +80,34 @@ module.exports = function (db) {
 
       //TODO: save event to database.
       //TODO: save instance to database
-      debug ('conf',result.conf);
-      done(null, result.conf);
+      //debug ('conf',JSON.stringify(result.conf,4,4));
+      //debug ('sendList',JSON.stringify(result.sendList,4,4));
 
+      var wait = false;
       result.sendList.forEach(function (sendItem) {
-        sendAction.send(sendItem.event, sendItem.options, sendUrl);
+        if(sendItem.event.type === 'http://scxml.io/httpLifecycle'){
+          //interpret this as special instructions to control the http response lifecycle
+          
+          if(sendItem.event.name === 'wait'){
+            wait = true;
+          }else if(sendItem.event.name === 'response'){
+            respond(sendItem.event.target, null, sendItem.event.data);
+            wait = sendItem.event.target === event.uuid;
+          }
+        } else {
+          sendAction.send(sendItem.event, sendItem.options, sendUrl);
+        }
       });
 
       result.cancelList.forEach(function (cancelItem) {
         sendAction.cancel(cancelItem.sendid);
       });
+
+      done(null, result.conf);
+
+      if(!wait){
+        respond(event.uuid, result.conf);
+      }
     });
   }
 
@@ -99,11 +117,11 @@ module.exports = function (db) {
     done(null, instanceId);
   };
 
-  server.startInstance = function (id, sendUrl, done) {
-    react(id, null, null, sendUrl, done);
+  server.startInstance = function (id, sendUrl, done, respond) {
+    react(id, null, null, sendUrl, done, respond);
   };
 
-  server.sendEvent = function (id, event, sendUrl, done) {
+  server.sendEvent = function (id, event, sendUrl, done, respond) {
     var chartName = getStatechartName(id);
 
     if(event.name === 'system.start') {
@@ -111,7 +129,7 @@ module.exports = function (db) {
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
         debug(err, snapshot);
-        react(id, snapshot, event, sendUrl, done);
+        react(id, snapshot, event, sendUrl, done, respond);
       });
     }
   };
