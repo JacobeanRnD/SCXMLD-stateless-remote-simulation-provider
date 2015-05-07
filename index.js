@@ -45,7 +45,7 @@ module.exports = function (db) {
     return instanceId.split('/')[0]; 
   }
 
-  function react (instanceId, snapshot, event, sendUrl, done, respond) {
+  function react (instanceId, snapshot, event, sendUrl, eventUuid, done, respond) {
 
     var chartName = getStatechartName(instanceId);
 
@@ -106,7 +106,7 @@ module.exports = function (db) {
       done(null, result.conf);
 
       if(!wait){
-        respond(event.uuid, result.conf);
+        respond(eventUuid, result.conf);
       }
     });
   }
@@ -117,19 +117,19 @@ module.exports = function (db) {
     done(null, instanceId);
   };
 
-  server.startInstance = function (id, sendUrl, done, respond) {
-    react(id, null, null, sendUrl, done, respond);
+  server.startInstance = function (id, sendUrl, eventUuid, done, respond) {
+    react(id, null, null, sendUrl, eventUuid, done, respond);
   };
 
-  server.sendEvent = function (id, event, sendUrl, done, respond) {
+  server.sendEvent = function (id, event, sendUrl, eventUuid, done, respond) {
     var chartName = getStatechartName(id);
 
     if(event.name === 'system.start') {
-      server.startInstance(id, sendUrl, done);
+      server.startInstance(id, sendUrl, eventUuid, done, respond);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
         debug(err, snapshot);
-        react(id, snapshot, event, sendUrl, done, respond);
+        react(id, snapshot, event, sendUrl, eventUuid, done, respond);
       });
     }
   };
