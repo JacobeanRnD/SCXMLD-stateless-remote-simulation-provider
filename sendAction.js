@@ -1,17 +1,22 @@
 'use strict';
 
 var request = require('request');
-var _ = require('underscore');
+var _ = require('underscore'),
+    debug = require('debug')('SCXMLD-stateless-remote-simulation-provider');
 
 var timeoutMap = {};
 function sendEventToSelf(event, sendUrl){
   var selfUrl = sendUrl || process.env.SEND_URL + event.origin;
   
-  request({
+  var options = {
     method : 'POST',
     json : event,
     url : selfUrl
-  },function(error, response){
+  };
+
+  debug('sending event to self',options);
+
+  request(options,function(error, response){
     if(error) console.error('error sending event to server', error || response.body);
   });
 }
@@ -30,11 +35,13 @@ function send(event, options, sendUrl) {
         };
       } else {
         n = function(){
-          request({
+          var options = {
             method : 'POST',
             json : event,
             url : event.target
-          },function(error, response, body ) {
+          };
+          debug('sending event', options);
+          request(options,function(error, response, body ) {
             //ignore the response for now
             /*
             if(error){
