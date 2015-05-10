@@ -51,6 +51,8 @@ module.exports = function (db) {
 
     redisSubscribe.subscribe(instanceId);   //TODO: tear down the subscription if, on unsubscribe, we have no more open subscriptions for that instance. 
 
+    if(event) event.uuid = eventUuid;   //tag the event with the uuid, if the event is non-null
+
     debug('sending event to',
       process.env.SCION_SANDBOX_URL,
       {
@@ -68,7 +70,7 @@ module.exports = function (db) {
         event: event
       }
     }, function(err, res, result) {
-      debug(process.env.SCION_SANDBOX_URL,'response',err, JSON.stringify(result,4,4));
+      debug(process.env.SCION_SANDBOX_URL,'response',err, JSON.stringify(result));
 
       if(err){ 
         debug('err',err);
@@ -91,6 +93,7 @@ module.exports = function (db) {
           if(sendItem.event.name === 'wait'){
             wait = true;
           }else if(sendItem.event.name === 'response'){
+            console.log('response event target',sendItem.event.target);
             respond(sendItem.event.target, null, sendItem.event.data);
             wait = sendItem.event.target === event.uuid;
           }
