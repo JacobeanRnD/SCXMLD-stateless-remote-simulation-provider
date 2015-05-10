@@ -45,7 +45,7 @@ module.exports = function (db) {
     return instanceId.split('/')[0]; 
   }
 
-  function react (instanceId, snapshot, event, sendUrl, eventUuid, done, respond) {
+  function react (instanceId, snapshot, event, sendOptions, eventUuid, done, respond) {
 
     var chartName = getStatechartName(instanceId);
 
@@ -95,7 +95,7 @@ module.exports = function (db) {
             wait = sendItem.event.target === event.uuid;
           }
         } else {
-          sendAction.send(sendItem.event, sendItem.options, sendUrl);
+          sendAction.send(sendItem.event, sendItem.options, sendOptions);
         }
       });
 
@@ -117,19 +117,19 @@ module.exports = function (db) {
     done(null, instanceId);
   };
 
-  server.startInstance = function (id, sendUrl, eventUuid, done, respond) {
-    react(id, null, null, sendUrl, eventUuid, done, respond);
+  server.startInstance = function (id, sendOptions, eventUuid, done, respond) {
+    react(id, null, null, sendOptions, eventUuid, done, respond);
   };
 
-  server.sendEvent = function (id, event, sendUrl, eventUuid, done, respond) {
+  server.sendEvent = function (id, event, sendOptions, eventUuid, done, respond) {
     var chartName = getStatechartName(id);
 
     if(event.name === 'system.start') {
-      server.startInstance(id, sendUrl, eventUuid, done, respond);
+      server.startInstance(id, sendOptions, eventUuid, done, respond);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
         debug(err, snapshot);
-        react(id, snapshot, event, sendUrl, eventUuid, done, respond);
+        react(id, snapshot, event, sendOptions, eventUuid, done, respond);
       });
     }
   };

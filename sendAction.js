@@ -1,27 +1,33 @@
 'use strict';
 
-var request = require('request');
-var _ = require('underscore'),
+var request = require('request'),
     debug = require('debug')('SCXMLD-stateless-remote-simulation-provider');
 
 var timeoutMap = {};
-function sendEventToSelf(event, sendUrl){
-  var selfUrl = sendUrl || process.env.SEND_URL + event.origin;
-  
-  var options = {
-    method : 'POST',
-    json : event,
-    url : selfUrl
-  };
+function sendEventToSelf(event, sendOptions) {
+  if(Object.keys(sendOptions.cookies)) {
+    //Extra support for ExpressJs and request cookies
+    var jar = request.jar();
 
-  debug('sending event to self',options);
+    Object.keys(sendOptions.cookies).forEach(function (cookieName) {
+      jar.setCookie(request.cookie(cookieName + '=' + sendOptions.cookies[cookieName]), sendOptions.uri);
+    });
 
-  request(options,function(error, response){
+    delete sendOptions.cookies;
+
+    sendOptions.jar = jar;
+  }
+
+  sendOptions.json = event;
+
+  debug('sending event to self', sendOptions);
+
+  request(sendOptions, function(error, response){
     if(error) console.error('error sending event to server', error || response.body);
   });
 }
 
-function send(event, options, sendUrl) {
+function send(event, options, sendOptions) {
 	var n;
 
   switch(event.type) {
@@ -31,7 +37,7 @@ function send(event, options, sendUrl) {
     case 'http://www.w3.org/TR/scxml/#BasicHTTPEventProcessor':
       if(!event.target) {
         n = function () {
-          sendEventToSelf(event, sendUrl);
+          sendEventToSelf(event, sendOptions);
         };
       } else {
         n = function(){
@@ -45,7 +51,7 @@ function send(event, options, sendUrl) {
             //ignore the response for now
             /*
             if(error){
-              sendEventToSelf(_.extend(event, { name : 'send.' + event.sendid + '.got.error',  data : error }), sendUrl);
+              sendEventToSelf(_.extend(event, { name : 'send.' + event.sendid + '.got.error',  data : error }), sendOptions);
             }else{
               sendEventToSelf(_.extend(event, {
                 name : 'send.' + event.sendid + '.got.success', 
@@ -53,7 +59,7 @@ function send(event, options, sendUrl) {
                   body : body,
                   response : response
                 }
-              }), sendUrl); 
+              }), sendOptions); 
             }
             */
           });
