@@ -5,7 +5,8 @@ var request = require('request'),
 
 var timeoutMap = {};
 function sendEventToSelf(event, sendOptions) {
-  if(Object.keys(sendOptions.cookies)) {
+  
+  if(sendOptions.cookies && Object.keys(sendOptions.cookies).length > 0) {
     //Extra support for ExpressJs and request cookies
     var jar = request.jar();
 
