@@ -7,7 +7,6 @@ var uuid = require('uuid'),
   debug = require('debug')('SCXMLD-stateless-remote-simulation-provider'),
   sendAction = require('./sendAction');
 
-
 if (process.env.REDIS_URL) {
   var rtg = url.parse(process.env.REDIS_URL);
   var redisSubscribe = redis.createClient(rtg.port, rtg.hostname);
