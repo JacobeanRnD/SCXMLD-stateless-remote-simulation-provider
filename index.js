@@ -83,18 +83,20 @@ module.exports = function (db) {
       //TODO: save instance to database
       //debug ('conf',JSON.stringify(result.conf,4,4));
       //debug ('sendList',JSON.stringify(result.sendList,4,4));
-
+      var targetRegex = /^scxml:\/\/response\/(.*)$/;
       var wait = false;
       result.sendList.forEach(function (sendItem) {
         if(sendItem.event.type === 'http://scxml.io/httpLifecycle'){
+          var targetMatch = sendItem.event.target.match(targetRegex);
+          if(!targetMatch && targetMatch.length) return done(new Error('Received malformed target url'));
+          var target = targetMatch[1];
+
           //interpret this as special instructions to control the http response lifecycle
-          
           if(sendItem.event.name === 'wait'){
             wait = true;
           }else if(sendItem.event.name === 'response'){
-            console.log('response event target',sendItem.event.target);
-            respond(sendItem.event.target, null, sendItem.event.data);
-            wait = sendItem.event.target === event.uuid;
+            respond(target, null, sendItem.event.data);
+            wait = target === event.uuid;
           }
         } else {
           sendAction.send(sendItem.event, sendItem.options, sendOptions);
