@@ -67,7 +67,7 @@ module.exports = function (db) {
         event: event
       }
     }, function(err, res, result) {
-      debug(process.env.SCION_SANDBOX_URL,'response',err, JSON.stringify(result));
+      debug('response',err, JSON.stringify(result));
 
       if(err){ 
         debug('err',err);
@@ -130,7 +130,6 @@ module.exports = function (db) {
       server.startInstance(id, sendOptions, eventUuid, done, respond);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
-        debug(err, snapshot);
         react(id, snapshot, event, sendOptions, eventUuid, done, respond);
       });
     }
