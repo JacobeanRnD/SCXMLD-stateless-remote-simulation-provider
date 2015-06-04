@@ -52,13 +52,11 @@ module.exports = function (db) {
 
     if(event) event.uuid = eventUuid;   //tag the event with the uuid, if the event is non-null
 
-    debug('sending event to',
-      process.env.SCION_SANDBOX_URL,
-      {
+    debug('sending event', JSON.stringify({
           snapshot: snapshot,
           instanceId: instanceId,
           event: event
-      });
+      }));
 
     request({
       url: process.env.SCION_SANDBOX_URL,
