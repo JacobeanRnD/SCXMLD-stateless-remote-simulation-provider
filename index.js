@@ -9,11 +9,21 @@ var uuid = require('uuid'),
 
 if (process.env.REDIS_URL) {
   var rtg = url.parse(process.env.REDIS_URL);
-  var redisSubscribe = redis.createClient(rtg.port, rtg.hostname);
 
+  var redisSubscribe = redis.createClient(rtg.port, rtg.hostname);
   if(rtg.auth) redisSubscribe.auth(rtg.auth.split(':')[1]);
+
+  var redisPublish = redis.createClient(rtg.port, rtg.hostname);
+  if(rtg.auth) redisPublish.auth(rtg.auth.split(':')[1]);
+
 } else {
   redisSubscribe = redis.createClient();
+  redisPublish = redis.createClient();
+}
+
+//FIXME: maybe it's possible to publish directly to the redis channel
+function respond(eventUuid, snapshot, customData){
+  redisPublish.publish('/response/' + eventUuid, JSON.stringify({snapshot:snapshot, customData:customData}));
 }
 
 var instanceSubscriptions = {};   // instanceid -> response
@@ -44,7 +54,7 @@ module.exports = function (db) {
     return instanceId.split('/')[0]; 
   }
 
-  function react (instanceId, snapshot, event, sendOptions, eventUuid, done, respond) {
+  function react (instanceId, snapshot, event, sendOptions, eventUuid, done) {
 
     var chartName = getStatechartName(instanceId);
 
@@ -119,18 +129,18 @@ module.exports = function (db) {
     done(null, instanceId);
   };
 
-  server.startInstance = function (id, sendOptions, eventUuid, done, respond) {
-    react(id, null, null, sendOptions, eventUuid, done, respond);
+  server.startInstance = function (id, sendOptions, eventUuid, done) {
+    react(id, null, null, sendOptions, eventUuid, done);
   };
 
-  server.sendEvent = function (id, event, sendOptions, eventUuid, done, respond) {
+  server.sendEvent = function (id, event, sendOptions, eventUuid, done) {
     var chartName = getStatechartName(id);
 
     if(event.name === 'system.start') {
-      server.startInstance(id, sendOptions, eventUuid, done, respond);
+      server.startInstance(id, sendOptions, eventUuid, done);
     } else {
       db.getInstance(chartName, id, function (err, snapshot) {
-        react(id, snapshot, event, sendOptions, eventUuid, done, respond);
+        react(id, snapshot, event, sendOptions, eventUuid, done);
       });
     }
   };
